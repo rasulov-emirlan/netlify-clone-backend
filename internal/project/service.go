@@ -32,7 +32,7 @@ type Repository interface {
 	Read(ctx context.Context, id ID) (Project, error)
 
 	Update(ctx context.Context, id ID, p Project) (Project, error)
-	Delete(ctx context.Context, p Project) error
+	Delete(ctx context.Context, id ID) error
 }
 
 type service struct {
@@ -53,9 +53,25 @@ func NewService(fs FileSystem, repo Repository, log Logger) (Service, error) {
 }
 
 func (s *service) Deploy(ctx context.Context, f io.Reader, name, basePath string, isSPA bool) (Project, error) {
-	panic("not implemented")
+	p, err := NewModel(name, basePath, isSPA)
+	if err != nil {
+		return p, err
+	}
+	p, err = s.repo.Create(ctx, p)
+	if err != nil {
+		return p, err
+	}
+	path, err := s.fs.Upload(ctx, f, name)
+	if err != nil {
+		return p, err
+	}
+	p.RealPath = path
+	return p, nil
 }
 
 func (s *service) Delete(ctx context.Context, id ID) error {
-	panic("not implemented")
+	if err := s.repo.Delete(ctx, id); err != nil {
+		return err
+	}
+	return s.fs.Delete(ctx, string(id))
 }
