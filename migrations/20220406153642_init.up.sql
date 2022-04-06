@@ -1,1 +1,3 @@
-CREATE TABLE IF NOT EXISTS project ()
+CREATE TABLE IF NOT EXISTS project (
+	id INT 
+);
