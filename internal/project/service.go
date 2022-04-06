@@ -57,15 +57,15 @@ func (s *service) Deploy(ctx context.Context, f io.Reader, name, basePath string
 	if err != nil {
 		return p, err
 	}
-	p, err = s.repo.Create(ctx, p)
-	if err != nil {
-		return p, err
-	}
 	path, err := s.fs.Upload(ctx, f, name)
 	if err != nil {
 		return p, err
 	}
 	p.RealPath = path
+	p, err = s.repo.Create(ctx, p)
+	if err != nil {
+		return p, err
+	}
 	return p, nil
 }
 
