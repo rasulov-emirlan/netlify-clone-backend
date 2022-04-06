@@ -61,6 +61,7 @@ func NewConfig(filenames ...string) (*Config, error) {
 	if cfg.Server.Port == "" || cfg.Server.Domain == "" {
 		return nil, ErrNoServerData
 	}
+	cfg.Server.Port = ":" + cfg.Server.Port
 	if cfg.Database == "" {
 		return nil, ErrNoDatabaseData
 	}
