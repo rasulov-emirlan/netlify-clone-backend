@@ -11,6 +11,17 @@ type Service interface {
 	Delete(ctx context.Context, id ID) error
 }
 
+type Logger interface {
+	Write(errLevel int, format string, v ...interface{}) error
+}
+
+const (
+	Info = iota
+	Error
+	Trace
+	Panic
+)
+
 type FileSystem interface {
 	Upload(ctx context.Context, f io.Reader, id string) (path string, err error)
 	Delete(ctx context.Context, id string) error
@@ -27,15 +38,17 @@ type Repository interface {
 type service struct {
 	fs   FileSystem
 	repo Repository
+	log  Logger
 }
 
-func NewService(fs FileSystem, repo Repository) (Service, error) {
-	if fs == nil || repo == nil {
+func NewService(fs FileSystem, repo Repository, log Logger) (Service, error) {
+	if fs == nil || repo == nil || log == nil {
 		return nil, errors.New("project: arguments for creating new service can't be nil")
 	}
 	return &service{
 		fs:   fs,
 		repo: repo,
+		log:  log,
 	}, nil
 }
 
