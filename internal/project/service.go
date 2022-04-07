@@ -7,7 +7,7 @@ import (
 )
 
 type Service interface {
-	Deploy(ctx context.Context, f multipart.File, name, basePath string, isSPA bool) (Project, error)
+	Deploy(ctx context.Context, f []*multipart.FileHeader, name, basePath string, isSPA bool) (Project, error)
 	// Serve(ctx context.Context, basPath string) (realPath string, err error)
 	Delete(ctx context.Context, id ID) error
 }
@@ -24,7 +24,7 @@ const (
 )
 
 type FileSystem interface {
-	Upload(ctx context.Context, f multipart.File, id string) (path string, err error)
+	Upload(ctx context.Context, f []*multipart.FileHeader, id string) (path string, err error)
 	Delete(ctx context.Context, id string) error
 }
 
@@ -54,7 +54,7 @@ func NewService(fs FileSystem, repo Repository, log Logger) (Service, error) {
 	}, nil
 }
 
-func (s *service) Deploy(ctx context.Context, f multipart.File, name, basePath string, isSPA bool) (Project, error) {
+func (s *service) Deploy(ctx context.Context, f []*multipart.FileHeader, name, basePath string, isSPA bool) (Project, error) {
 	p, err := NewModel(name, basePath, isSPA)
 	if err != nil {
 		return p, err

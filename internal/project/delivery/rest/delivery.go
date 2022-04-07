@@ -2,7 +2,6 @@ package rest
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -36,7 +35,7 @@ func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	case "PATCH":
 		rw.Write([]byte("get"))
 	default:
-		rw.Write([]byte("no seponse"))
+		rw.Write([]byte("no response"))
 	}
 }
 
@@ -45,17 +44,19 @@ func (h *handler) post(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(h)
 	}
 	defer r.Body.Close()
-	f, headers, err := r.FormFile("project")
-	if err != nil {
-		w.Write([]byte(err.Error()))
+
+	if err := r.ParseMultipartForm(200000); err != nil {
+		respondString(w, err.Error())
 		return
 	}
-	defer f.Close()
+	formdata := r.MultipartForm
+	files := formdata.File["project"]
+
 	name := r.FormValue("name")
 	basePath := r.FormValue("basePath")
 	isSPA := r.FormValue("isSPA")
 	if name == "" || basePath == "" || isSPA == "" {
-		w.Write([]byte("incorrect input"))
+		respondString(w, "incorrect input")
 		return
 	}
 	c := false
@@ -65,19 +66,14 @@ func (h *handler) post(w http.ResponseWriter, r *http.Request) {
 	case "false":
 		break
 	default:
-		w.Write([]byte("incorrect input"))
+		respondString(w, "incorrect input")
 		return
 	}
-	log.Println(headers)
 
-	p, err := h.service.Deploy(context.Background(), f, name, basePath, c)
+	p, err := h.service.Deploy(context.Background(), files, name, basePath, c)
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		respondString(w, err.Error())
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(&p); err != nil {
-		w.Write([]byte(err.Error()))
-		return
-	}
+	respondJSON(w, &p)
 }

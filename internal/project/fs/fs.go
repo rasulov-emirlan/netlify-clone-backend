@@ -2,7 +2,7 @@ package fs
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"mime/multipart"
 	"os"
 )
@@ -13,29 +13,41 @@ type fs struct {
 
 func NewFileSystem(dirname string) (*fs, error) {
 	if _, err := os.Stat(dirname); os.IsNotExist(err) {
-		if err = os.Mkdir(dirname, 0555); err != nil {
+		if err = os.Mkdir(dirname, os.ModePerm); err != nil {
 			return nil, err
 		}
 	}
 	return &fs{}, nil
 }
 
-func (f *fs) Upload(ctx context.Context, file multipart.File, id string) (path string, err error) {
+func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, id string) (string, error) {
 	if _, err := os.Stat(f.dirname + "/" + id); os.IsExist(err) {
 		return "", err
 	}
-	ff, err := os.OpenFile(f.dirname+"/"+id, os.O_CREATE|os.O_RDWR, 0777)
-	if err != nil {
-		return "", err
-	}
-	defer ff.Close()
-	b, err := ioutil.ReadAll(file)
-	if err != nil {
+	// TODO: solve issue with permissions
+	if err := os.Mkdir(f.dirname+"/"+id, 0777); err != nil {
 		return "", err
 	}
 
-	if _, err = ff.Write(b); err != nil {
-		return "", err
+	for i := range files { // loop through the files one by one
+		file, err := files[i].Open()
+		defer file.Close()
+		if err != nil {
+			return "", err
+		}
+
+		out, err := os.Create(f.dirname + "/" + files[i].Filename)
+
+		defer out.Close()
+		if err != nil {
+			return "", err
+		}
+
+		_, err = io.Copy(out, file)
+
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return f.dirname + "/" + id, nil
