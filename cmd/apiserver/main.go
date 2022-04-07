@@ -39,7 +39,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println(service)
 	if service == nil {
 		log.Fatal(service)
 	}

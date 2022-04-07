@@ -3,10 +3,12 @@ package rest
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/labstack/gommon/color"
 )
 
 type server struct {
@@ -42,6 +44,7 @@ func (s *server) Start() error {
 		return err
 	}
 	s.listener.Handler = h
+	log.Println(color.Green("Server is listening at port:" + s.listener.Addr))
 	return s.listener.ListenAndServe()
 }
 

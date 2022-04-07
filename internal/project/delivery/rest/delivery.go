@@ -9,6 +9,8 @@ import (
 	"github.com/rasulov-emirlan/netlify-clone-backend/internal/project"
 )
 
+var projects map[string]project.Project
+
 type handler struct {
 	service project.Service
 }
@@ -24,16 +26,8 @@ func NewHandler(s project.Service) (*handler, error) {
 
 func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	switch req.Method {
-	case "GET":
-		rw.Write([]byte("get"))
 	case "POST":
 		h.post(rw, req)
-	case "DELETE":
-		rw.Write([]byte("get"))
-	case "PUT":
-		rw.Write([]byte("get"))
-	case "PATCH":
-		rw.Write([]byte("get"))
 	default:
 		rw.Write([]byte("no response"))
 	}
@@ -76,4 +70,9 @@ func (h *handler) post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, &p)
+	projects[name] = p
+}
+
+func (h *handler) get(w http.ResponseWriter, r *http.Request) {
+
 }
