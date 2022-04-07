@@ -13,11 +13,13 @@ type fs struct {
 
 func NewFileSystem(dirname string) (*fs, error) {
 	if _, err := os.Stat(dirname); os.IsNotExist(err) {
-		if err = os.Mkdir(dirname, os.ModePerm); err != nil {
+		if err = os.Mkdir(dirname, 0777); err != nil {
 			return nil, err
 		}
 	}
-	return &fs{}, nil
+	return &fs{
+		dirname: dirname,
+	}, nil
 }
 
 func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, id string) (string, error) {
@@ -36,7 +38,7 @@ func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, id strin
 			return "", err
 		}
 
-		out, err := os.Create(f.dirname + "/" + files[i].Filename)
+		out, err := os.Create(f.dirname + "/" + id + "/" + files[i].Filename)
 
 		defer out.Close()
 		if err != nil {
