@@ -5,6 +5,9 @@
 *.so
 *.dylib
 **/.vscode/**
+**/.idea/**
+**/temper/**
+**/.VSCodeCounter/**
 # Test binary, built with `go test -c`
 *.test
 
