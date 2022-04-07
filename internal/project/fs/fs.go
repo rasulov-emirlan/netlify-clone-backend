@@ -2,8 +2,8 @@ package fs
 
 import (
 	"context"
-	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"os"
 )
 
@@ -20,11 +20,11 @@ func NewFileSystem(dirname string) (*fs, error) {
 	return &fs{}, nil
 }
 
-func (f *fs) Upload(ctx context.Context, file io.Reader, id string) (path string, err error) {
+func (f *fs) Upload(ctx context.Context, file multipart.File, id string) (path string, err error) {
 	if _, err := os.Stat(f.dirname + "/" + id); os.IsExist(err) {
 		return "", err
 	}
-	ff, err := os.Create(id)
+	ff, err := os.OpenFile(f.dirname+"/"+id, os.O_CREATE|os.O_RDWR, 0777)
 	if err != nil {
 		return "", err
 	}

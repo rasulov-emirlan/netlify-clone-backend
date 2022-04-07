@@ -3,11 +3,12 @@ package project
 import (
 	"context"
 	"errors"
-	"io"
+	"mime/multipart"
 )
 
 type Service interface {
-	Deploy(ctx context.Context, f io.Reader, name, basePath string, isSPA bool) (Project, error)
+	Deploy(ctx context.Context, f multipart.File, name, basePath string, isSPA bool) (Project, error)
+	// Serve(ctx context.Context, basPath string) (realPath string, err error)
 	Delete(ctx context.Context, id ID) error
 }
 
@@ -23,13 +24,14 @@ const (
 )
 
 type FileSystem interface {
-	Upload(ctx context.Context, f io.Reader, id string) (path string, err error)
+	Upload(ctx context.Context, f multipart.File, id string) (path string, err error)
 	Delete(ctx context.Context, id string) error
 }
 
 type Repository interface {
 	Create(ctx context.Context, p Project) (Project, error)
 	Read(ctx context.Context, id ID) (Project, error)
+	// ReadByBasePath(ctx context.Context, basePath string) (Project, error)
 
 	Update(ctx context.Context, id ID, p Project) (Project, error)
 	Delete(ctx context.Context, id ID) error
@@ -42,7 +44,7 @@ type service struct {
 }
 
 func NewService(fs FileSystem, repo Repository, log Logger) (Service, error) {
-	if fs == nil || repo == nil || log == nil {
+	if fs == nil || repo == nil {
 		return nil, errors.New("project: arguments for creating new service can't be nil")
 	}
 	return &service{
@@ -52,7 +54,7 @@ func NewService(fs FileSystem, repo Repository, log Logger) (Service, error) {
 	}, nil
 }
 
-func (s *service) Deploy(ctx context.Context, f io.Reader, name, basePath string, isSPA bool) (Project, error) {
+func (s *service) Deploy(ctx context.Context, f multipart.File, name, basePath string, isSPA bool) (Project, error) {
 	p, err := NewModel(name, basePath, isSPA)
 	if err != nil {
 		return p, err
@@ -68,6 +70,13 @@ func (s *service) Deploy(ctx context.Context, f io.Reader, name, basePath string
 	}
 	return p, nil
 }
+
+// func (s *service) Serve(ctx context.Context, basPath string) (realPath string, err error) {
+// 	r, err := s.repo.ReadByBasePath(ctx, basPath)
+// 	if err != nil {
+
+// 	}
+// }
 
 func (s *service) Delete(ctx context.Context, id ID) error {
 	if err := s.repo.Delete(ctx, id); err != nil {

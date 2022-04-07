@@ -2,33 +2,37 @@ package rest
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
-	projectRouter "github.com/rasulov-emirlan/netlify-clone-backend/internal/project/delivery/rest"
 )
 
 type server struct {
 	listener *http.Server
 	domain   string
 
-	projectHandler *projectRouter.Handler
+	projectHandler http.Handler
 }
 
 func NewServer(
 	port, domain string,
 	timeR, timeW time.Duration,
-	pHandler *projectRouter.Handler,
+	pHandler http.Handler,
 ) (*server, error) {
+	if pHandler == nil {
+		return nil, errors.New("server: handlers can't be nil")
+	}
 	s := &http.Server{
 		ReadTimeout:  timeR,
 		WriteTimeout: timeW,
 		Addr:         port,
 	}
 	return &server{
-		listener: s,
-		domain:   domain,
+		listener:       s,
+		domain:         domain,
+		projectHandler: pHandler,
 	}, nil
 }
 

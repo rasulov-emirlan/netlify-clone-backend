@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/rasulov-emirlan/netlify-clone-backend/internal/project"
 	"gorm.io/gorm"
 )
@@ -16,7 +17,7 @@ func NewRepo(conn *gorm.DB) (*Repository, error) {
 	if conn == nil {
 		return nil, errors.New("project: connection to database can't be nil")
 	}
-	if err := conn.AutoMigrate(&projectModel{}); err != nil {
+	if err := conn.Table("projects").AutoMigrate(&projectModel{}); err != nil {
 		return nil, err
 	}
 	return &Repository{
@@ -25,8 +26,9 @@ func NewRepo(conn *gorm.DB) (*Repository, error) {
 }
 
 func (r *Repository) Create(ctx context.Context, p project.Project) (project.Project, error) {
+	id := uuid.New().String()
 	pm := projectModel{
-		ID:       string(p.ID),
+		ID:       id,
 		Name:     p.Name,
 		BasePath: p.BasePath,
 		RealPath: p.RealPath,
@@ -39,6 +41,7 @@ func (r *Repository) Create(ctx context.Context, p project.Project) (project.Pro
 	if res.RowsAffected == 0 {
 		return project.Project{}, errors.New("postgres: could't  insert into database, don't know why")
 	}
+	p.ID = project.ID(id)
 	return p, nil
 }
 

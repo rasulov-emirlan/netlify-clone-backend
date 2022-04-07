@@ -1,10 +1,10 @@
 package postgres
 
 type projectModel struct {
-	ID string `gorm:"type:uuid, primaryKey; column:id"`
+	ID string `gorm:"type:uuid;primary_key; column:id"`
 
-	Name     string `gorm:"column: project_name"`
-	BasePath string `gorm:"index; column:base_path"`
-	RealPath string `gorm:"real_path"`
+	Name     string `gorm:"index:idx_member, unique; column: project_name"`
+	BasePath string `gorm:"index:idx_member, unique; index; column:base_path"`
+	RealPath string `gorm:"index:idx_member, unique; real_path"`
 	IsSPA    bool   `gorm:"column:is_spa"`
 }
