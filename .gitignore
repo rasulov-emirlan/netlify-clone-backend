@@ -8,6 +8,7 @@
 **/.idea/**
 **/temper/**
 **/.VSCodeCounter/**
+minio
 # Test binary, built with `go test -c`
 *.test
 
