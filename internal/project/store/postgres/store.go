@@ -9,23 +9,23 @@ import (
 	"gorm.io/gorm"
 )
 
-type Repository struct {
+type repository struct {
 	conn *gorm.DB
 }
 
-func NewRepo(conn *gorm.DB) (*Repository, error) {
+func NewRepo(conn *gorm.DB) (*repository, error) {
 	if conn == nil {
 		return nil, errors.New("project: connection to database can't be nil")
 	}
 	if err := conn.AutoMigrate(&Project{}); err != nil {
 		return nil, err
 	}
-	return &Repository{
+	return &repository{
 		conn: conn,
 	}, nil
 }
 
-func (r *Repository) Create(ctx context.Context, p project.Project) (project.Project, error) {
+func (r *repository) Create(ctx context.Context, p project.Project) (project.Project, error) {
 	id := uuid.New().String()
 	pm := Project{
 		ID:       id,
@@ -45,24 +45,27 @@ func (r *Repository) Create(ctx context.Context, p project.Project) (project.Pro
 	return p, nil
 }
 
-func (r *Repository) Read(ctx context.Context, id project.ID) (project.Project, error) {
-	p := &Project{}
-	res := r.conn.First(p, "id = ?", string(id))
+func (r *repository) Read(ctx context.Context, id project.ID) (project.Project, error) {
+	p := Project{}
+	res := r.conn.First(&p, "id = ?", string(id))
 	if res.Error != nil {
 		return project.Project{}, res.Error
 	}
-	return project.Project{
-		ID:       id,
-		Name:     p.Name,
-		BasePath: p.BasePath,
-		RealPath: p.RealPath,
-		IsSPA:    p.IsSPA,
-	}, nil
+	return projectToService(p)
 }
 
-func (r *Repository) Update(ctx context.Context, id project.ID, p project.Project) (project.Project, error) {
+func (r *repository) List(ctx context.Context) ([]project.Project, error) {
+	p := []Project{}
+	res := r.conn.Find(&p)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return projectsToService(p)
+}
+
+func (r *repository) Update(ctx context.Context, id project.ID, p project.Project) (project.Project, error) {
 	panic("not imeplemented")
 }
-func (r *Repository) Delete(ctx context.Context, id project.ID) error {
+func (r *repository) Delete(ctx context.Context, id project.ID) error {
 	panic("not implemented")
 }
