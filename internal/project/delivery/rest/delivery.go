@@ -19,6 +19,13 @@ func NewHandler(s project.Service) (*handler, error) {
 		return nil, errors.New("project: arguments for NewHandler can't be nil")
 	}
 	m := make(map[string]project.Project)
+	p, err := s.List(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range p {
+		m[v.BasePath] = v
+	}
 	return &handler{
 		service:  s,
 		projects: m,
@@ -26,6 +33,7 @@ func NewHandler(s project.Service) (*handler, error) {
 }
 
 func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	log.Println(req.URL.Path)
 	switch req.Method {
 	case "POST":
 		h.post(rw, req)

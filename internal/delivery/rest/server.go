@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
 	"github.com/labstack/gommon/color"
 )
 
@@ -52,8 +51,6 @@ func (s *server) Shutdown(ctx context.Context) error {
 	return s.listener.Shutdown(ctx)
 }
 
-func (s *server) registerRoutes() (*mux.Router, error) {
-	m := mux.NewRouter()
-	m.Handle("/", s.projectHandler)
-	return m, nil
+func (s *server) registerRoutes() (http.Handler, error) {
+	return s.projectHandler, nil
 }
