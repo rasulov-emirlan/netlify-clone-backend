@@ -8,6 +8,7 @@ import (
 
 type Service interface {
 	Deploy(ctx context.Context, f []*multipart.FileHeader, name, basePath string, isSPA bool) (Project, error)
+	List(ctx context.Context) ([]Project, error)
 	// Serve(ctx context.Context, basPath string) (realPath string, err error)
 	Delete(ctx context.Context, id ID) error
 }
@@ -31,6 +32,7 @@ type FileSystem interface {
 type Repository interface {
 	Create(ctx context.Context, p Project) (Project, error)
 	Read(ctx context.Context, id ID) (Project, error)
+	List(ctx context.Context) ([]Project, error)
 	// ReadByBasePath(ctx context.Context, basePath string) (Project, error)
 
 	Update(ctx context.Context, id ID, p Project) (Project, error)
@@ -69,6 +71,10 @@ func (s *service) Deploy(ctx context.Context, f []*multipart.FileHeader, name, b
 		return p, err
 	}
 	return p, nil
+}
+
+func (s *service) List(ctx context.Context) ([]Project, error) {
+	return s.repo.List(ctx)
 }
 
 // func (s *service) Serve(ctx context.Context, basPath string) (realPath string, err error) {
