@@ -13,17 +13,18 @@ import (
 
 type fs struct {
 	client *minio.Client
+	url    string
 }
 
-func NewFileSystem(port, accessKeyID, secretAccessKey string, useSSL bool) (*fs, error) {
-	c, err := minio.New(port, &minio.Options{
+func NewFileSystem(url, accessKeyID, secretAccessKey string, useSSL bool) (*fs, error) {
+	c, err := minio.New(url, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
 		Secure: useSSL,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &fs{client: c}, nil
+	return &fs{client: c, url: "http://" + url}, nil
 }
 
 func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, id string) (path string, err error) {
@@ -64,7 +65,7 @@ func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, id strin
 			return "", err
 		}
 	}
-	return fmt.Sprintf("/%s/", id), nil
+	return fmt.Sprintf("%s/%s/", f.url, id), nil
 }
 
 func (f *fs) Delete(ctx context.Context, id string) error {

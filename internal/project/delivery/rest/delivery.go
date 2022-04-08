@@ -3,6 +3,7 @@ package rest
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/rasulov-emirlan/netlify-clone-backend/internal/project"
@@ -94,7 +95,8 @@ func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 		if !v.IsSPA {
 			return
 		}
-		http.ServeFile(w, r, v.RealPath+"/"+"index.html")
+
+		http.Redirect(w, r, v.RealPath+"/index.html", http.StatusMovedPermanently)
 		return
 	}
 	s, err := parseURL(r.URL.Path)
@@ -105,5 +107,6 @@ func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	http.ServeFile(w, r, v.RealPath+"/"+s[1])
+	log.Println(v.RealPath)
+	http.Redirect(w, r, v.RealPath+s[1], http.StatusMovedPermanently)
 }
