@@ -40,7 +40,7 @@ func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		h.get(rw, req)
 		return
 	default:
-		rw.Write([]byte("no response"))
+		respondString(rw, http.StatusBadRequest, "no response")
 	}
 }
 
