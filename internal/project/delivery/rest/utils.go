@@ -5,7 +5,8 @@ import (
 	"net/http"
 )
 
-func respondString(w http.ResponseWriter, v string) {
+func respondString(w http.ResponseWriter, s int, v string) {
+	w.WriteHeader(s)
 	w.Write([]byte(v))
 }
 

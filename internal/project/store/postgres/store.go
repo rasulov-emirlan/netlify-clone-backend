@@ -17,7 +17,7 @@ func NewRepo(conn *gorm.DB) (*Repository, error) {
 	if conn == nil {
 		return nil, errors.New("project: connection to database can't be nil")
 	}
-	if err := conn.Table("projects").AutoMigrate(&projectModel{}); err != nil {
+	if err := conn.AutoMigrate(&Project{}); err != nil {
 		return nil, err
 	}
 	return &Repository{
@@ -27,7 +27,7 @@ func NewRepo(conn *gorm.DB) (*Repository, error) {
 
 func (r *Repository) Create(ctx context.Context, p project.Project) (project.Project, error) {
 	id := uuid.New().String()
-	pm := projectModel{
+	pm := Project{
 		ID:       id,
 		Name:     p.Name,
 		BasePath: p.BasePath,
@@ -46,7 +46,7 @@ func (r *Repository) Create(ctx context.Context, p project.Project) (project.Pro
 }
 
 func (r *Repository) Read(ctx context.Context, id project.ID) (project.Project, error) {
-	p := &projectModel{}
+	p := &Project{}
 	res := r.conn.First(p, "id = ?", string(id))
 	if res.Error != nil {
 		return project.Project{}, res.Error

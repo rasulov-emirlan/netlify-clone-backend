@@ -1,6 +1,6 @@
 package postgres
 
-type projectModel struct {
+type Project struct {
 	ID string `gorm:"type:uuid;primary_key; column:id"`
 
 	Name     string `gorm:"index:idx_member, unique; column: project_name"`

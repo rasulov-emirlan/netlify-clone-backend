@@ -9,18 +9,19 @@ import (
 	"github.com/rasulov-emirlan/netlify-clone-backend/internal/project"
 )
 
-var projects map[string]project.Project
-
 type handler struct {
-	service project.Service
+	service  project.Service
+	projects map[string]project.Project
 }
 
 func NewHandler(s project.Service) (*handler, error) {
 	if s == nil {
 		return nil, errors.New("project: arguments for NewHandler can't be nil")
 	}
+	m := make(map[string]project.Project)
 	return &handler{
-		service: s,
+		service:  s,
+		projects: m,
 	}, nil
 }
 
@@ -40,7 +41,7 @@ func (h *handler) post(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err := r.ParseMultipartForm(200000); err != nil {
-		respondString(w, err.Error())
+		respondString(w, http.StatusBadGateway, err.Error())
 		return
 	}
 	formdata := r.MultipartForm
@@ -50,7 +51,7 @@ func (h *handler) post(w http.ResponseWriter, r *http.Request) {
 	basePath := r.FormValue("basePath")
 	isSPA := r.FormValue("isSPA")
 	if name == "" || basePath == "" || isSPA == "" {
-		respondString(w, "incorrect input")
+		respondString(w, http.StatusBadRequest, "incorrect input")
 		return
 	}
 	c := false
@@ -60,17 +61,17 @@ func (h *handler) post(w http.ResponseWriter, r *http.Request) {
 	case "false":
 		break
 	default:
-		respondString(w, "incorrect input")
+		respondString(w, http.StatusBadRequest, "incorrect input")
 		return
 	}
 
 	p, err := h.service.Deploy(context.Background(), files, name, basePath, c)
 	if err != nil {
-		respondString(w, err.Error())
+		respondString(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	respondJSON(w, &p)
-	projects[name] = p
+	h.projects[name] = p
 }
 
 func (h *handler) get(w http.ResponseWriter, r *http.Request) {

@@ -8,7 +8,7 @@ import (
 	"github.com/rasulov-emirlan/netlify-clone-backend/internal/delivery/rest"
 	"github.com/rasulov-emirlan/netlify-clone-backend/internal/project"
 	projectR "github.com/rasulov-emirlan/netlify-clone-backend/internal/project/delivery/rest"
-	"github.com/rasulov-emirlan/netlify-clone-backend/internal/project/fs"
+	"github.com/rasulov-emirlan/netlify-clone-backend/internal/project/fs/local"
 	"github.com/rasulov-emirlan/netlify-clone-backend/internal/project/store/postgres"
 	"github.com/rasulov-emirlan/netlify-clone-backend/pkg/db"
 )
@@ -27,7 +27,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	filesystem, err := fs.NewFileSystem("temper")
+	filesystem, err := local.NewFileSystem("temper")
 	if err != nil {
 		log.Fatal(err)
 	}
