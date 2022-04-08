@@ -34,7 +34,7 @@ func (r *repository) Create(ctx context.Context, p project.Project) (project.Pro
 		RealPath: p.RealPath,
 		IsSPA:    p.IsSPA,
 	}
-	res := r.conn.Create(pm)
+	res := r.conn.Create(&pm)
 	if res.Error != nil {
 		return project.Project{}, res.Error
 	}

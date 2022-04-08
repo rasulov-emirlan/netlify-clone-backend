@@ -23,6 +23,7 @@ func NewHandler(s project.Service) (*handler, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Println(p)
 	for _, v := range p {
 		m[v.BasePath] = v
 	}
@@ -37,6 +38,10 @@ func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "POST":
 		h.post(rw, req)
+		return
+	case "GET":
+		h.get(rw, req)
+		return
 	default:
 		rw.Write([]byte("no response"))
 	}
@@ -80,8 +85,38 @@ func (h *handler) post(w http.ResponseWriter, r *http.Request) {
 	}
 	respondJSON(w, &p)
 	h.projects[name] = p
+	return
 }
 
 func (h *handler) get(w http.ResponseWriter, r *http.Request) {
+	s, err := h.parseURL(r.URL.Path)
+	if err != nil {
+		return
+	}
+	v, ok := h.projects[s[0]]
+	if !ok {
+		return
+	}
+	log.Println(s)
+	http.ServeFile(w, r, v.RealPath+"/"+s[1])
+}
 
+func (h *handler) parseURL(s string) ([2]string, error) {
+	if len(s) <= 1 {
+		return [2]string{}, errors.New("incorrect input")
+	}
+	res := [2]string{}
+	basepath := []rune{}
+	index := 0
+	for i, v := range s[1:] {
+		if v == '/' {
+			index = i
+			break
+		}
+		basepath = append(basepath, v)
+	}
+	filepath := s[index+1:]
+	res[0] = string(basepath)
+	res[1] = filepath
+	return res, nil
 }
