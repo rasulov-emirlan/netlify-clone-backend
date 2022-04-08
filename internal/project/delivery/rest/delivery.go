@@ -3,7 +3,6 @@ package rest
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/rasulov-emirlan/netlify-clone-backend/internal/project"
@@ -23,7 +22,6 @@ func NewHandler(s project.Service) (*handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Println(p)
 	for _, v := range p {
 		m[v.BasePath] = v
 	}
@@ -34,7 +32,6 @@ func NewHandler(s project.Service) (*handler, error) {
 }
 
 func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	log.Println(req.URL.Path)
 	switch req.Method {
 	case "POST":
 		h.post(rw, req)
@@ -48,11 +45,7 @@ func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (h *handler) post(w http.ResponseWriter, r *http.Request) {
-	if h == nil {
-		log.Fatal(h)
-	}
 	defer r.Body.Close()
-
 	if err := r.ParseMultipartForm(200000); err != nil {
 		respondString(w, http.StatusBadGateway, err.Error())
 		return
@@ -89,7 +82,22 @@ func (h *handler) post(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) get(w http.ResponseWriter, r *http.Request) {
-	s, err := h.parseURL(r.URL.Path)
+	if !IsFileURL(r.URL.Path) {
+		s, err := parseURL(r.URL.Path)
+		if err != nil {
+			return
+		}
+		v, ok := h.projects[s[0]]
+		if !ok {
+			return
+		}
+		if !v.IsSPA {
+			return
+		}
+		http.ServeFile(w, r, v.RealPath+"/"+"index.html")
+		return
+	}
+	s, err := parseURL(r.URL.Path)
 	if err != nil {
 		return
 	}
@@ -97,26 +105,5 @@ func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	log.Println(s)
 	http.ServeFile(w, r, v.RealPath+"/"+s[1])
-}
-
-func (h *handler) parseURL(s string) ([2]string, error) {
-	if len(s) <= 1 {
-		return [2]string{}, errors.New("incorrect input")
-	}
-	res := [2]string{}
-	basepath := []rune{}
-	index := 0
-	for i, v := range s[1:] {
-		if v == '/' {
-			index = i
-			break
-		}
-		basepath = append(basepath, v)
-	}
-	filepath := s[index+1:]
-	res[0] = string(basepath)
-	res[1] = filepath
-	return res, nil
 }
