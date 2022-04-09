@@ -12,11 +12,12 @@ import (
 )
 
 type fs struct {
-	client *minio.Client
-	url    string
+	client     *minio.Client
+	url        string
+	baseBucket string
 }
 
-func NewFileSystem(url, accessKeyID, secretAccessKey string, useSSL bool) (*fs, error) {
+func NewFileSystem(url, accessKeyID, secretAccessKey, baseBucket string, useSSL bool) (*fs, error) {
 	c, err := minio.New(url, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
 		Secure: useSSL,
@@ -24,13 +25,14 @@ func NewFileSystem(url, accessKeyID, secretAccessKey string, useSSL bool) (*fs, 
 	if err != nil {
 		return nil, err
 	}
-	return &fs{client: c, url: "http://" + url}, nil
+	return &fs{client: c, url: "http://" + url, baseBucket: baseBucket}, nil
 }
 
-func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, id string) (path string, err error) {
-	err = f.client.MakeBucket(ctx, id, minio.MakeBucketOptions{Region: "us-east-1", ObjectLocking: false})
+func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, foldername string) (path string, err error) {
+	foldername = fmt.Sprintf("%s-%s", f.baseBucket, foldername)
+	err = f.client.MakeBucket(ctx, foldername, minio.MakeBucketOptions{Region: "us-east-1", ObjectLocking: false})
 	if err != nil {
-		exists, errBucketExists := f.client.BucketExists(ctx, id)
+		exists, errBucketExists := f.client.BucketExists(ctx, foldername)
 		if errBucketExists == nil && exists {
 			return "", errors.New("miniofs: trying to create a bucket that already exists")
 		}
@@ -42,8 +44,8 @@ func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, id strin
 		"Effect": "Allow",
 		"Principal": {"AWS": ["*"]},
 		"Resource": ["arn:aws:s3:::%s/*"],
-		"Sid": ""}]}`, id)
-	if err := f.client.SetBucketPolicy(ctx, id, policy); err != nil {
+		"Sid": ""}]}`, foldername)
+	if err := f.client.SetBucketPolicy(ctx, foldername, policy); err != nil {
 		return path, err
 	}
 	for _, v := range files {
@@ -55,7 +57,7 @@ func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, id strin
 		log.Println("trying to upload files")
 		if _, err = f.client.PutObject(
 			ctx,
-			id,
+			foldername,
 			v.Filename,
 			file,
 			v.Size,
@@ -64,12 +66,13 @@ func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, id strin
 			return "", err
 		}
 	}
-	return fmt.Sprintf("%s/%s/", f.url, id), nil
+	return fmt.Sprintf("%s/%s/", f.url, foldername), nil
 }
 
 // Be careful with this function. It deletes all the files inside of a bucket
 // and replaces them with new ones
 func (f *fs) Replace(ctx context.Context, files []*multipart.FileHeader, foldername string) error {
+	foldername = fmt.Sprintf("%s-%s", f.baseBucket, foldername)
 	exists, err := f.client.BucketExists(ctx, foldername)
 	if err != nil {
 		return err
