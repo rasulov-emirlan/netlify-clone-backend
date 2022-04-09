@@ -8,7 +8,7 @@ import (
 
 type Service interface {
 	Deploy(ctx context.Context, f []*multipart.FileHeader, name, basePath string, isSPA bool) (Project, error)
-	Redeploy(ctx context.Context, f []*multipart.FileHeader, id ID) (Project, error)
+	Redeploy(ctx context.Context, f []*multipart.FileHeader, id ID) error
 	List(ctx context.Context) ([]Project, error)
 	// Serve(ctx context.Context, basPath string) (realPath string, err error)
 	Delete(ctx context.Context, id ID) error
@@ -26,9 +26,8 @@ const (
 )
 
 type FileSystem interface {
-	Upload(ctx context.Context, f []*multipart.FileHeader, foldername string) (path string, err error)
-
-	Replace(ctx context.Context, f []*multipart.FileHeader, foldername string) error
+	// If folder is already in the file system it should create a sub folder for the new version
+	Upload(ctx context.Context, f []*multipart.FileHeader, foldername string, version int) (path string, err error)
 	Delete(ctx context.Context, id string) error
 }
 
@@ -64,7 +63,7 @@ func (s *service) Deploy(ctx context.Context, f []*multipart.FileHeader, name, b
 	if err != nil {
 		return p, err
 	}
-	path, err := s.fs.Upload(ctx, f, name)
+	path, err := s.fs.Upload(ctx, f, name, int(p.CurrentVersion))
 	if err != nil {
 		return p, err
 	}
@@ -76,12 +75,19 @@ func (s *service) Deploy(ctx context.Context, f []*multipart.FileHeader, name, b
 	return p, nil
 }
 
-func (s *service) Redeploy(ctx context.Context, f []*multipart.FileHeader, id ID) (Project, error) {
+func (s *service) Redeploy(ctx context.Context, f []*multipart.FileHeader, id ID) error {
 	p, err := s.repo.Read(ctx, id)
 	if err != nil {
-		return Project{}, err
+		return err
 	}
-	return p, s.fs.Replace(ctx, f, p.Name)
+	p.CurrentVersion++
+	basePath, err := s.fs.Upload(ctx, f, p.Name, int(p.CurrentVersion))
+	if err != nil {
+		return err
+	}
+	p.BasePath = basePath
+	_, err = s.repo.Update(ctx, id, p)
+	return err
 }
 
 func (s *service) List(ctx context.Context) ([]Project, error) {

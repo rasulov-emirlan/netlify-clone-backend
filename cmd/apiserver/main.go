@@ -28,7 +28,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	filesystem, err := miniofs.NewFileSystem(cfg.Minio.URL, cfg.Minio.AccessKeyID, cfg.Minio.SecretAccessKey, cfg.Minio.UseSSL)
+	filesystem, err := miniofs.NewFileSystem(
+		cfg.Minio.URL,
+		cfg.Minio.AccessKeyID,
+		cfg.Minio.SecretAccessKey,
+		cfg.Minio.BaseBucketName,
+		cfg.Minio.UseSSL,
+	)
 	if err != nil {
 		log.Fatal(err)
 	}

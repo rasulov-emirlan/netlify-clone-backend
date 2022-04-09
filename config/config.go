@@ -12,6 +12,7 @@ import (
 type (
 	minio struct {
 		URL             string
+		BaseBucketName  string
 		AccessKeyID     string
 		SecretAccessKey string
 		UseSSL          bool
@@ -38,6 +39,7 @@ const (
 	databaseURL = "DATABASE_URL"
 
 	minioURL          = "MINIO_URL"
+	minioBucketName   = "MINIO_BASE_BUCKET_NAME"
 	minioAcceessKeyID = "MINIO_ACCESS_KEY_ID"
 	minioSecretKey    = "MINIO_SECRET_KEY"
 	minioUseSSL       = "MINIO_USE_SSL"
@@ -77,6 +79,7 @@ func NewConfig(filenames ...string) (*Config, error) {
 		Database: os.Getenv(databaseURL),
 		Minio: minio{
 			URL:             os.Getenv(minioURL),
+			BaseBucketName:  os.Getenv(minioBucketName),
 			AccessKeyID:     os.Getenv(minioAcceessKeyID),
 			SecretAccessKey: os.Getenv(minioSecretKey),
 			UseSSL:          b,
@@ -89,7 +92,8 @@ func NewConfig(filenames ...string) (*Config, error) {
 	if cfg.Database == "" {
 		return nil, ErrNoDatabaseData
 	}
-	if cfg.Minio.AccessKeyID == "" || cfg.Minio.SecretAccessKey == "" || cfg.Minio.URL == "" {
+	if cfg.Minio.AccessKeyID == "" || cfg.Minio.SecretAccessKey == "" ||
+		cfg.Minio.URL == "" || cfg.Minio.BaseBucketName == "" {
 		return nil, ErrNoMinioData
 	}
 	return &cfg, nil

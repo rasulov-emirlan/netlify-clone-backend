@@ -28,16 +28,21 @@ func NewFileSystem(url, accessKeyID, secretAccessKey, baseBucket string, useSSL 
 	return &fs{client: c, url: "http://" + url, baseBucket: baseBucket}, nil
 }
 
-func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, foldername string) (path string, err error) {
-	foldername = fmt.Sprintf("%s-%s", f.baseBucket, foldername)
-	err = f.client.MakeBucket(ctx, foldername, minio.MakeBucketOptions{Region: "us-east-1", ObjectLocking: false})
-	if err != nil {
-		exists, errBucketExists := f.client.BucketExists(ctx, foldername)
-		if errBucketExists == nil && exists {
-			return "", errors.New("miniofs: trying to create a bucket that already exists")
-		}
-		return "", err
+func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, foldername string, version int) (path string, err error) {
+	foldername = fmt.Sprintf("%s-%s-%d", f.baseBucket, foldername, version)
+	exists, errBucketExists := f.client.BucketExists(ctx, foldername)
+	if errBucketExists == nil && exists {
+		return "", errors.New("miniofs: trying to create a bucket that already exists")
 	}
+	if err = f.client.MakeBucket(
+		ctx,
+		foldername,
+		minio.MakeBucketOptions{Region: "us-east-1", ObjectLocking: false},
+	); err != nil {
+		return path, err
+	}
+	// i dont' know how code bellow works
+	// so please dont touch it
 	policy := fmt.Sprintf(`{
 		"Version": "2012-10-17",
 		"Statement": [{"Action": ["s3:GetObject"],
@@ -69,43 +74,42 @@ func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, folderna
 	return fmt.Sprintf("%s/%s/", f.url, foldername), nil
 }
 
-// Be careful with this function. It deletes all the files inside of a bucket
-// and replaces them with new ones
-func (f *fs) Replace(ctx context.Context, files []*multipart.FileHeader, foldername string) error {
-	foldername = fmt.Sprintf("%s-%s", f.baseBucket, foldername)
-	exists, err := f.client.BucketExists(ctx, foldername)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return errors.New("miniofs: we don't have such bucket")
-	}
-	objectsCh := make(chan minio.ObjectInfo)
-	errCh := make(chan error)
-	go func() {
-		defer close(objectsCh)
-		doneCh := make(chan struct{})
-		defer close(doneCh)
-		for object := range f.client.ListObjects(ctx, "mytestbucket", minio.ListObjectsOptions{Prefix: "", Recursive: true}) {
-			if object.Err != nil {
-				errCh <- object.Err
-				return
-			}
-			objectsCh <- object
-		}
-	}()
-	go func() {
-		errorCh := f.client.RemoveObjects(ctx, foldername, objectsCh, minio.RemoveObjectsOptions{})
-		for e := range errorCh {
-			errCh <- e.Err
-			return
-		}
-	}()
-	select {
-	case <-errCh:
-		return <-errCh
-	}
-}
+// this function is deprecated and it is not finished
+// func (f *fs) Replace(ctx context.Context, files []*multipart.FileHeader, foldername string) error {
+// 	foldername = fmt.Sprintf("%s-%s", f.baseBucket, foldername)
+// 	exists, err := f.client.BucketExists(ctx, foldername)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	if !exists {
+// 		return errors.New("miniofs: we don't have such bucket")
+// 	}
+// 	objectsCh := make(chan minio.ObjectInfo)
+// 	errCh := make(chan error)
+// 	go func() {
+// 		defer close(objectsCh)
+// 		doneCh := make(chan struct{})
+// 		defer close(doneCh)
+// 		for object := range f.client.ListObjects(ctx, "mytestbucket", minio.ListObjectsOptions{Prefix: "", Recursive: true}) {
+// 			if object.Err != nil {
+// 				errCh <- object.Err
+// 				return
+// 			}
+// 			objectsCh <- object
+// 		}
+// 	}()
+// 	go func() {
+// 		errorCh := f.client.RemoveObjects(ctx, foldername, objectsCh, minio.RemoveObjectsOptions{})
+// 		for e := range errorCh {
+// 			errCh <- e.Err
+// 			return
+// 		}
+// 	}()
+// 	select {
+// 	case <-errCh:
+// 		return <-errCh
+// 	}
+// }
 
 func (f *fs) Delete(ctx context.Context, id string) error {
 	panic("not implemented")
