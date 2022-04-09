@@ -45,9 +45,11 @@ func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
+var megabyte int64 = 1048576
+
 func (h *handler) post(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	if err := r.ParseMultipartForm(200000); err != nil {
+	if err := r.ParseMultipartForm(megabyte * 20); err != nil {
 		respondString(w, http.StatusBadGateway, err.Error())
 		return
 	}

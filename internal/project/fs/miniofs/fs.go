@@ -30,10 +30,9 @@ func NewFileSystem(url, accessKeyID, secretAccessKey string, useSSL bool) (*fs, 
 func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, id string) (path string, err error) {
 	err = f.client.MakeBucket(ctx, id, minio.MakeBucketOptions{Region: "us-east-1", ObjectLocking: false})
 	if err != nil {
-		log.Println("wow thats fast")
 		exists, errBucketExists := f.client.BucketExists(ctx, id)
 		if errBucketExists == nil && exists {
-			return "", errors.New("miniofs: trying to create a bucker that already exists")
+			return "", errors.New("miniofs: trying to create a bucket that already exists")
 		}
 		return "", err
 	}
@@ -66,6 +65,43 @@ func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, id strin
 		}
 	}
 	return fmt.Sprintf("%s/%s/", f.url, id), nil
+}
+
+// Be careful with this function. It deletes all the files inside of a bucket
+// and replaces them with new ones
+func (f *fs) Replace(ctx context.Context, files []*multipart.FileHeader, foldername string) error {
+	exists, err := f.client.BucketExists(ctx, foldername)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return errors.New("miniofs: we don't have such bucket")
+	}
+	objectsCh := make(chan minio.ObjectInfo)
+	errCh := make(chan error)
+	go func() {
+		defer close(objectsCh)
+		doneCh := make(chan struct{})
+		defer close(doneCh)
+		for object := range f.client.ListObjects(ctx, "mytestbucket", minio.ListObjectsOptions{Prefix: "", Recursive: true}) {
+			if object.Err != nil {
+				errCh <- object.Err
+				return
+			}
+			objectsCh <- object
+		}
+	}()
+	go func() {
+		errorCh := f.client.RemoveObjects(ctx, foldername, objectsCh, minio.RemoveObjectsOptions{})
+		for e := range errorCh {
+			errCh <- e.Err
+			return
+		}
+	}()
+	select {
+	case <-errCh:
+		return <-errCh
+	}
 }
 
 func (f *fs) Delete(ctx context.Context, id string) error {

@@ -8,6 +8,7 @@ import (
 
 type Service interface {
 	Deploy(ctx context.Context, f []*multipart.FileHeader, name, basePath string, isSPA bool) (Project, error)
+	Redeploy(ctx context.Context, f []*multipart.FileHeader, id ID) (Project, error)
 	List(ctx context.Context) ([]Project, error)
 	// Serve(ctx context.Context, basPath string) (realPath string, err error)
 	Delete(ctx context.Context, id ID) error
@@ -25,7 +26,9 @@ const (
 )
 
 type FileSystem interface {
-	Upload(ctx context.Context, f []*multipart.FileHeader, id string) (path string, err error)
+	Upload(ctx context.Context, f []*multipart.FileHeader, foldername string) (path string, err error)
+
+	Replace(ctx context.Context, f []*multipart.FileHeader, foldername string) error
 	Delete(ctx context.Context, id string) error
 }
 
@@ -71,6 +74,14 @@ func (s *service) Deploy(ctx context.Context, f []*multipart.FileHeader, name, b
 		return p, err
 	}
 	return p, nil
+}
+
+func (s *service) Redeploy(ctx context.Context, f []*multipart.FileHeader, id ID) (Project, error) {
+	p, err := s.repo.Read(ctx, id)
+	if err != nil {
+		return Project{}, err
+	}
+	return p, s.fs.Replace(ctx, f, p.Name)
 }
 
 func (s *service) List(ctx context.Context) ([]Project, error) {
