@@ -45,7 +45,7 @@ func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
-var megabyte int64 = 1048576
+const megabyte int64 = 1048576
 
 func (h *handler) post(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
