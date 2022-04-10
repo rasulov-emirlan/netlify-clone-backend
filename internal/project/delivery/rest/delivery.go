@@ -3,8 +3,8 @@ package rest
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
+	"path/filepath"
 
 	"github.com/rasulov-emirlan/netlify-clone-backend/internal/project"
 )
@@ -85,30 +85,31 @@ func (h *handler) post(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) get(w http.ResponseWriter, r *http.Request) {
-	if !IsFileURL(r.URL.Path) {
-		s, err := parseURL(r.URL.Path)
-		if err != nil {
-			return
-		}
-		v, ok := h.projects[s[0]]
-		if !ok {
-			return
-		}
-		if !v.IsSPA {
-			return
-		}
-
-		http.Redirect(w, r, v.RealPath+"/index.html", http.StatusMovedPermanently)
-		return
-	}
-	s, err := parseURL(r.URL.Path)
+	reqURL, err := parseURL(r.URL.Path)
 	if err != nil {
+		respondString(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	v, ok := h.projects[s[0]]
+	v, ok := h.projects[reqURL[0]]
 	if !ok {
+		respondString(w, http.StatusNotFound, "we dont have such route")
 		return
 	}
-	log.Println(v.RealPath)
-	http.Redirect(w, r, v.RealPath+s[1], http.StatusMovedPermanently)
+	switch filepath.Ext(r.URL.Path) {
+	case ".js":
+		fallthrough
+	case ".html":
+		fallthrough
+	case ".css":
+		http.Redirect(w, r, v.BasePath+reqURL[1], http.StatusMovedPermanently)
+		break
+	case "":
+		if v.IsSPA {
+			http.Redirect(w, r, v.BasePath, http.StatusMovedPermanently)
+			break
+		}
+		http.Redirect(w, r, v.BasePath+"index.html", http.StatusMovedPermanently)
+	default:
+		http.Redirect(w, r, v.AssetsRealPath+reqURL[1], http.StatusMovedPermanently)
+	}
 }
