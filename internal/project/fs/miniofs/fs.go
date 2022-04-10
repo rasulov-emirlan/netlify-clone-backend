@@ -2,10 +2,9 @@ package miniofs
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"log"
 	"mime/multipart"
+	"path/filepath"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -28,50 +27,57 @@ func NewFileSystem(url, accessKeyID, secretAccessKey, baseBucket string, useSSL 
 	return &fs{client: c, url: "http://" + url, baseBucket: baseBucket}, nil
 }
 
-func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, foldername string, version int) (path string, err error) {
-	foldername = fmt.Sprintf("%s-%s-%d", f.baseBucket, foldername, version)
+func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, foldername string, version int) (string, string, error) {
+	foldername = fmt.Sprintf("%s-%s", f.baseBucket, foldername)
 	exists, errBucketExists := f.client.BucketExists(ctx, foldername)
-	if errBucketExists == nil && exists {
-		return "", errors.New("miniofs: trying to create a bucket that already exists")
+	if errBucketExists == nil && !exists {
+		return "", "", errBucketExists
 	}
-	if err = f.client.MakeBucket(
-		ctx,
-		foldername,
-		minio.MakeBucketOptions{Region: "us-east-1", ObjectLocking: false},
-	); err != nil {
-		return path, err
-	}
-	// i dont' know how code bellow works
-	// so please dont touch it
-	policy := fmt.Sprintf(`{
+	if !exists {
+		if err := f.client.MakeBucket(
+			ctx,
+			foldername,
+			minio.MakeBucketOptions{Region: "us-east-1", ObjectLocking: false},
+		); err != nil {
+			return "", "", err
+		}
+		// i dont' know how code bellow works
+		// so please dont touch it
+		policy := fmt.Sprintf(`{
 		"Version": "2012-10-17",
 		"Statement": [{"Action": ["s3:GetObject"],
 		"Effect": "Allow",
 		"Principal": {"AWS": ["*"]},
 		"Resource": ["arn:aws:s3:::%s/*"],
 		"Sid": ""}]}`, foldername)
-	if err := f.client.SetBucketPolicy(ctx, foldername, policy); err != nil {
-		return path, err
+		if err := f.client.SetBucketPolicy(ctx, foldername, policy); err != nil {
+			return "", "", err
+		}
 	}
+
 	for _, v := range files {
 		file, err := v.Open()
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		defer file.Close()
-		log.Println("trying to upload files")
+		filename := v.Filename
+		if ext := filepath.Ext(filename); ext == ".js" ||
+			ext == ".html" || ext == ".css" {
+			filename = fmt.Sprintf("%d/%s", version, filename)
+		}
 		if _, err = f.client.PutObject(
 			ctx,
 			foldername,
-			v.Filename,
+			filename,
 			file,
 			v.Size,
 			minio.PutObjectOptions{ContentType: v.Header.Get("Content-Type")},
 		); err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
-	return fmt.Sprintf("%s/%s/", f.url, foldername), nil
+	return fmt.Sprintf("%s/%s/%d/", f.url, foldername, version), fmt.Sprintf("%s/%s/", f.url, foldername), nil
 }
 
 // this function is deprecated and it is not finished

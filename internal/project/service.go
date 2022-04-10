@@ -27,7 +27,7 @@ const (
 
 type FileSystem interface {
 	// If folder is already in the file system it should create a sub folder for the new version
-	Upload(ctx context.Context, f []*multipart.FileHeader, foldername string, version int) (path string, err error)
+	Upload(ctx context.Context, f []*multipart.FileHeader, foldername string, version int) (path, assetsPath string, err error)
 	Delete(ctx context.Context, id string) error
 }
 
@@ -63,11 +63,12 @@ func (s *service) Deploy(ctx context.Context, f []*multipart.FileHeader, name, b
 	if err != nil {
 		return p, err
 	}
-	path, err := s.fs.Upload(ctx, f, name, int(p.CurrentVersion))
+	path, assetsPath, err := s.fs.Upload(ctx, f, name, int(p.CurrentVersion))
 	if err != nil {
 		return p, err
 	}
 	p.RealPath = path
+	p.AssetsRealPath = assetsPath
 	p, err = s.repo.Create(ctx, p)
 	if err != nil {
 		return p, err
@@ -81,11 +82,12 @@ func (s *service) Redeploy(ctx context.Context, f []*multipart.FileHeader, id ID
 		return err
 	}
 	p.CurrentVersion++
-	basePath, err := s.fs.Upload(ctx, f, p.Name, int(p.CurrentVersion))
+	basePath, assetsPath, err := s.fs.Upload(ctx, f, p.Name, int(p.CurrentVersion))
 	if err != nil {
 		return err
 	}
 	p.BasePath = basePath
+	p.AssetsRealPath = assetsPath
 	_, err = s.repo.Update(ctx, id, p)
 	return err
 }
