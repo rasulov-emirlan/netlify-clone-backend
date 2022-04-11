@@ -17,7 +17,8 @@ func NewRepo(conn *gorm.DB) (*repository, error) {
 	if conn == nil {
 		return nil, errors.New("project: connection to database can't be nil")
 	}
-	if err := conn.AutoMigrate(&Project{}); err != nil {
+	// TODO: code bellow causes panic investigate when deploying :)
+	if err := conn.Debug().AutoMigrate(Project{}); err != nil {
 		return nil, err
 	}
 	return &repository{

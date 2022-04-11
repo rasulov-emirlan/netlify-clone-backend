@@ -6,5 +6,5 @@ import (
 )
 
 func NewGORM(url string) (*gorm.DB, error) {
-	return gorm.Open(postgres.Open(url))
+	return gorm.Open(postgres.Open(url), &gorm.Config{})
 }

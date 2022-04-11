@@ -3,8 +3,9 @@ package rest
 import (
 	"context"
 	"errors"
+	"io/ioutil"
+	"log"
 	"net/http"
-	"path/filepath"
 
 	"github.com/rasulov-emirlan/netlify-clone-backend/internal/project"
 )
@@ -26,6 +27,7 @@ func NewHandler(s project.Service) (*handler, error) {
 	for _, v := range p {
 		m[v.BasePath] = v
 	}
+	log.Println(p)
 	return &handler{
 		service:  s,
 		projects: m,
@@ -34,10 +36,10 @@ func NewHandler(s project.Service) (*handler, error) {
 
 func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	switch req.Method {
-	case "POST":
+	case http.MethodPost:
 		h.post(rw, req)
 		return
-	case "GET":
+	case http.MethodGet:
 		h.get(rw, req)
 		return
 	default:
@@ -92,24 +94,22 @@ func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 	}
 	v, ok := h.projects[reqURL[0]]
 	if !ok {
-		respondString(w, http.StatusNotFound, "we dont have such route")
+		http.Error(w, "we do not have such route", http.StatusNotFound)
 		return
 	}
-	switch filepath.Ext(r.URL.Path) {
-	case ".js":
-		fallthrough
-	case ".html":
-		fallthrough
-	case ".css":
-		http.Redirect(w, r, v.BasePath+reqURL[1], http.StatusMovedPermanently)
-		break
-	case "":
-		if v.IsSPA {
-			http.Redirect(w, r, v.BasePath, http.StatusMovedPermanently)
-			break
-		}
-		http.Redirect(w, r, v.BasePath+"index.html", http.StatusMovedPermanently)
-	default:
-		http.Redirect(w, r, v.AssetsRealPath+reqURL[1], http.StatusMovedPermanently)
+	forwarding := v.RealPath + "index.html"
+	log.Println(forwarding)
+	resp, err := http.Get(forwarding)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
+	w.Write(body)
 }

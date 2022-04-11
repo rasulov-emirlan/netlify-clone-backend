@@ -33,7 +33,7 @@ func parseURL(s string) ([2]string, error) {
 	index := 0
 	for i, v := range s[1:] {
 		if v == '/' {
-			index = i
+			index = i + 1
 			break
 		}
 		basepath = append(basepath, v)
