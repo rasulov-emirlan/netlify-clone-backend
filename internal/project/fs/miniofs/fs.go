@@ -29,9 +29,9 @@ func NewFileSystem(url, accessKeyID, secretAccessKey, baseBucket string, useSSL 
 
 func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, foldername string, version int) (string, string, error) {
 	foldername = fmt.Sprintf("%s-%s", f.baseBucket, foldername)
-	exists, errBucketExists := f.client.BucketExists(ctx, foldername)
-	if errBucketExists != nil {
-		return "", "", errBucketExists
+	exists, err := f.client.BucketExists(ctx, foldername)
+	if err != nil {
+		return "", "", err
 	}
 	if !exists {
 		if err := f.client.MakeBucket(

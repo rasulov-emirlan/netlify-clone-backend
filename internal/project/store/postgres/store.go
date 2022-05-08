@@ -18,9 +18,9 @@ func NewRepo(conn *gorm.DB) (*repository, error) {
 		return nil, errors.New("project: connection to database can't be nil")
 	}
 	// TODO: code bellow causes panic investigate when deploying :)
-	if err := conn.Debug().AutoMigrate(Project{}); err != nil {
-		return nil, err
-	}
+	// if err := conn.Debug().AutoMigrate(Project{}); err != nil {
+	// 	return nil, err
+	// }
 	return &repository{
 		conn: conn,
 	}, nil
@@ -65,8 +65,22 @@ func (r *repository) List(ctx context.Context) ([]project.Project, error) {
 }
 
 func (r *repository) Update(ctx context.Context, id project.ID, p project.Project) (project.Project, error) {
-	panic("not imeplemented")
+	pp := Project{
+		ID:             string(id),
+		Name:           p.Name,
+		BasePath:       p.BasePath,
+		RealPath:       p.RealPath,
+		AssetsRealPath: p.AssetsRealPath,
+		CurrentVersion: p.CurrentVersion,
+		IsSPA:          p.IsSPA,
+	}
+	tx := r.conn.Save(&pp)
+	if tx.Error != nil {
+		return project.Project{}, tx.Error
+	}
+	return projectToService(pp)
 }
+
 func (r *repository) Delete(ctx context.Context, id project.ID) error {
 	panic("not implemented")
 }

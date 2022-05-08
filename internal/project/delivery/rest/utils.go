@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"path/filepath"
+	"strings"
 )
 
 func respondString(w http.ResponseWriter, s int, v string) {
@@ -15,13 +15,6 @@ func respondString(w http.ResponseWriter, s int, v string) {
 func respondJSON(w http.ResponseWriter, v interface{}) error {
 	w.Header().Set("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(v)
-}
-
-func IsFileURL(s string) bool {
-	if len(filepath.Ext(s)) == 0 {
-		return false
-	}
-	return true
 }
 
 func parseURL(s string) ([2]string, error) {
@@ -42,4 +35,13 @@ func parseURL(s string) ([2]string, error) {
 	res[0] = string(basepath)
 	res[1] = filepath
 	return res, nil
+}
+
+func parseParam(s string) (string, error) {
+	if len(s) <= 1 {
+		return "", errors.New("incorrect input")
+	}
+
+	temp := strings.Split(s, "/")
+	return temp[len(temp)-1], nil
 }

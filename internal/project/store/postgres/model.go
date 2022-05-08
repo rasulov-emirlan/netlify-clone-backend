@@ -8,7 +8,7 @@ type Project struct {
 	ID string `gorm:"type:uuid;primary_key; column:id"`
 
 	Name           string `gorm:"index:idx_member, unique; column: project_name"`
-	CurrentVersion uint16 `gorm:"index"`
+	CurrentVersion uint16 `gorm:"column:current_version"`
 	BasePath       string `gorm:"index:idx_member, unique; column:base_path"`
 	RealPath       string `gorm:"index:idx_member, unique; real_path"`
 	AssetsRealPath string `gorm:"index:idx_member, unique; assets_real_path"`
