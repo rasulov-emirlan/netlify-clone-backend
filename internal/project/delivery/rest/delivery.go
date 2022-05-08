@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
@@ -30,7 +29,6 @@ func NewHandler(s project.Service) (*handler, error) {
 		return nil, err
 	}
 	for _, v := range p {
-		log.Println("base of", v.BasePath)
 		m.Store(v.BasePath, v)
 	}
 	return &handler{
@@ -118,7 +116,6 @@ func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 		respondString(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	log.Println(reqURL)
 	v, ok := h.projects.Load(reqURL[0])
 	if !ok {
 		http.Error(w, "we do not have such route", http.StatusNotFound)
@@ -143,7 +140,6 @@ func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 		}
 		forwarding += "index.html"
 	}
-	log.Println(forwarding)
 	url, err := url.Parse(forwarding)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -167,10 +163,4 @@ func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
-}
-
-func transfer(destination io.WriteCloser, source io.ReadCloser) {
-	defer destination.Close()
-	defer source.Close()
-	io.Copy(destination, source)
 }
