@@ -51,6 +51,9 @@ func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	case http.MethodPatch:
 		h.patch(rw, req)
 		return
+	case http.MethodDelete:
+		h.delete(rw, req)
+		return
 	default:
 		respondString(rw, http.StatusBadRequest, "no response")
 	}
@@ -115,7 +118,7 @@ func (h *handler) patch(w http.ResponseWriter, r *http.Request) {
 func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var (
-		reqURL 	   = strings.Split(r.URL.Path, "/")
+		reqURL     = strings.Split(r.URL.Path, "/")
 		forwarding = ""
 	)
 
@@ -174,4 +177,21 @@ func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
+}
+
+func (h *handler) delete(w http.ResponseWriter, r *http.Request) {
+	// TODO: here we assume that there is nothing
+	// in our request url after second slash
+	// so maybe refactor it somehow
+	path := strings.Split(r.URL.Path, "/")
+	if len(path) < 2 {
+		http.Error(w, "we need an id in path params", http.StatusBadRequest)
+		return
+	}
+	id := path[len(path)-1]
+	if err := h.service.Delete(r.Context(), project.ID(id)); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }

@@ -104,8 +104,12 @@ func (s *service) List(ctx context.Context) ([]Project, error) {
 // }
 
 func (s *service) Delete(ctx context.Context, id ID) error {
+	p, err := s.repo.Read(ctx, id)
+	if err != nil {
+		return err
+	}
 	if err := s.repo.Delete(ctx, id); err != nil {
 		return err
 	}
-	return s.fs.Delete(ctx, string(id))
+	return s.fs.Delete(ctx, p.RealPath)
 }

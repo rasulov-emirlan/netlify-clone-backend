@@ -82,5 +82,5 @@ func (r *repository) Update(ctx context.Context, id project.ID, p project.Projec
 }
 
 func (r *repository) Delete(ctx context.Context, id project.ID) error {
-	panic("not implemented")
+	return r.conn.Delete(&Project{ID: string(id)}).Error
 }

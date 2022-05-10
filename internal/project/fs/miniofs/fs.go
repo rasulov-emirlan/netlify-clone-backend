@@ -2,9 +2,12 @@ package miniofs
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
 	"mime/multipart"
 	"path/filepath"
+	"strings"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -118,5 +121,44 @@ func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, folderna
 // }
 
 func (f *fs) Delete(ctx context.Context, id string) error {
-	panic("not implemented")
+	// cause we store the whole path to a folder in our
+	// database we have to extract id of a folder
+	// from that path
+	// TODO: would be great if we would not hav to do that
+	temp := strings.Split(id, "/")
+	if len(temp) < 3 {
+		return errors.New("miniofs: incorrect id of bucket")
+	}
+	folder := temp[3]
+	objectsCh := make(chan minio.ObjectInfo)
+	errCh := make(chan error, 1)
+	go func() {
+		log.Println("started listing objects")
+		defer close(objectsCh)
+		doneCh := make(chan struct{})
+		defer close(doneCh)
+		for object := range f.client.ListObjects(ctx, folder, minio.ListObjectsOptions{Prefix: "", Recursive: true}) {
+			if object.Err != nil {
+				errCh <- object.Err
+				return
+			}
+			log.Println("listing objects")
+			objectsCh <- object
+		}
+		log.Println("finished listing objects")
+	}()
+	log.Println("started removing objects")
+	for err := range f.client.RemoveObjects(ctx, folder, objectsCh, minio.RemoveObjectsOptions{GovernanceBypass: true}) {
+		if err.Err != nil {
+			return err.Err
+		}
+	}
+	log.Println("removing buckets")
+	if err := f.client.RemoveBucket(ctx, folder); err != nil {
+		errCh <- err
+	}
+	log.Println("deleted all the shit")
+	errCh <- nil
+	err := <-errCh
+	return err
 }
