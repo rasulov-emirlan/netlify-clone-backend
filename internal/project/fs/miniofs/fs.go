@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"mime/multipart"
 	"path/filepath"
 	"strings"
@@ -133,7 +132,6 @@ func (f *fs) Delete(ctx context.Context, id string) error {
 	objectsCh := make(chan minio.ObjectInfo)
 	errCh := make(chan error, 1)
 	go func() {
-		log.Println("started listing objects")
 		defer close(objectsCh)
 		doneCh := make(chan struct{})
 		defer close(doneCh)
@@ -142,22 +140,17 @@ func (f *fs) Delete(ctx context.Context, id string) error {
 				errCh <- object.Err
 				return
 			}
-			log.Println("listing objects")
 			objectsCh <- object
 		}
-		log.Println("finished listing objects")
 	}()
-	log.Println("started removing objects")
 	for err := range f.client.RemoveObjects(ctx, folder, objectsCh, minio.RemoveObjectsOptions{GovernanceBypass: true}) {
 		if err.Err != nil {
 			return err.Err
 		}
 	}
-	log.Println("removing buckets")
 	if err := f.client.RemoveBucket(ctx, folder); err != nil {
 		errCh <- err
 	}
-	log.Println("deleted all the shit")
 	errCh <- nil
 	err := <-errCh
 	return err
