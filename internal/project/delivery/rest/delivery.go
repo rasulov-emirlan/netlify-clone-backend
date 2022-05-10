@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 	"sync"
 
 	"github.com/rasulov-emirlan/netlify-clone-backend/internal/project"
@@ -29,6 +31,7 @@ func NewHandler(s project.Service) (*handler, error) {
 		return nil, err
 	}
 	for _, v := range p {
+		log.Println(v)
 		m.Store(v.BasePath, v)
 	}
 	return &handler{
@@ -111,34 +114,42 @@ func (h *handler) patch(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	reqURL, err := parseURL(r.URL.Path)
-	if err != nil {
-		respondString(w, http.StatusBadRequest, err.Error())
+	var (
+		reqURL 	   = strings.Split(r.URL.Path, "/")
+		forwarding = ""
+	)
+
+	// TODO: this code is highly dependent
+	// on the path to this handler
+	// maybe try changing it somehow
+	if len(reqURL) < 2 {
+		w.WriteHeader(404)
 		return
 	}
-	v, ok := h.projects.Load(reqURL[0])
+
+	v, ok := h.projects.Load(reqURL[2])
 	if !ok {
-		http.Error(w, "we do not have such route", http.StatusNotFound)
+		w.WriteHeader(404)
 		return
 	}
+
 	p, ok := v.(project.Project)
 	if !ok {
 		http.Error(w, "could not convert interface{}", http.StatusInternalServerError)
 		return
 	}
-	forwarding := p.RealPath
 	switch {
-	case p.IsSPA && path.Ext(reqURL[1]) == "":
-		forwarding += "index.html"
+	case p.IsSPA && path.Ext(reqURL[2]) == "":
+		forwarding += p.RealPath + "index.html"
 	case !p.IsSPA:
-		http.Error(w, "", http.StatusNotFound)
+		http.Error(w, "dfdsfs", http.StatusNotFound)
 		return
 	default:
-		if reqURL[1] != reqURL[0] {
-			forwarding += reqURL[1]
+		if reqURL[1] != reqURL[2] {
+			forwarding += p.AssetsRealPath + strings.Join(reqURL[2:], "")
 			break
 		}
-		forwarding += "index.html"
+		forwarding += p.RealPath + "index.html"
 	}
 	url, err := url.Parse(forwarding)
 	if err != nil {

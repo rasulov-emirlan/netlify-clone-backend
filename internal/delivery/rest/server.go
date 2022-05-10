@@ -52,5 +52,7 @@ func (s *server) Shutdown(ctx context.Context) error {
 }
 
 func (s *server) registerRoutes() (http.Handler, error) {
-	return s.projectHandler, nil
+	mux := http.NewServeMux()
+	mux.Handle("/projects/", s.projectHandler)
+	return mux, nil
 }

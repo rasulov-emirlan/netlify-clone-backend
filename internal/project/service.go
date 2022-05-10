@@ -82,11 +82,11 @@ func (s *service) Redeploy(ctx context.Context, f []*multipart.FileHeader, id ID
 		return err
 	}
 	p.CurrentVersion++
-	basePath, assetsPath, err := s.fs.Upload(ctx, f, p.Name, int(p.CurrentVersion))
+	realPath, assetsPath, err := s.fs.Upload(ctx, f, p.Name, int(p.CurrentVersion))
 	if err != nil {
 		return err
 	}
-	p.BasePath = basePath
+	p.RealPath = realPath
 	p.AssetsRealPath = assetsPath
 	_, err = s.repo.Update(ctx, id, p)
 	return err
