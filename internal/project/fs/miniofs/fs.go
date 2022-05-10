@@ -82,43 +82,6 @@ func (f *fs) Upload(ctx context.Context, files []*multipart.FileHeader, folderna
 	return fmt.Sprintf("%s/%s/%d/", f.url, foldername, version), fmt.Sprintf("%s/%s/", f.url, foldername), nil
 }
 
-// this function is deprecated and it is not finished
-// func (f *fs) Replace(ctx context.Context, files []*multipart.FileHeader, foldername string) error {
-// 	foldername = fmt.Sprintf("%s-%s", f.baseBucket, foldername)
-// 	exists, err := f.client.BucketExists(ctx, foldername)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if !exists {
-// 		return errors.New("miniofs: we don't have such bucket")
-// 	}
-// 	objectsCh := make(chan minio.ObjectInfo)
-// 	errCh := make(chan error)
-// 	go func() {
-// 		defer close(objectsCh)
-// 		doneCh := make(chan struct{})
-// 		defer close(doneCh)
-// 		for object := range f.client.ListObjects(ctx, "mytestbucket", minio.ListObjectsOptions{Prefix: "", Recursive: true}) {
-// 			if object.Err != nil {
-// 				errCh <- object.Err
-// 				return
-// 			}
-// 			objectsCh <- object
-// 		}
-// 	}()
-// 	go func() {
-// 		errorCh := f.client.RemoveObjects(ctx, foldername, objectsCh, minio.RemoveObjectsOptions{})
-// 		for e := range errorCh {
-// 			errCh <- e.Err
-// 			return
-// 		}
-// 	}()
-// 	select {
-// 	case <-errCh:
-// 		return <-errCh
-// 	}
-// }
-
 func (f *fs) Delete(ctx context.Context, id string) error {
 	// cause we store the whole path to a folder in our
 	// database we have to extract id of a folder

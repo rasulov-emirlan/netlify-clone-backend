@@ -142,18 +142,26 @@ func (h *handler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch {
-	case p.IsSPA && path.Ext(reqURL[2]) == "":
-		forwarding += p.RealPath + "index.html"
-	case !p.IsSPA:
-		http.Error(w, "dfdsfs", http.StatusNotFound)
-		return
-	default:
-		if reqURL[1] != reqURL[2] {
-			forwarding += p.AssetsRealPath + strings.Join(reqURL[2:], "")
+	case p.IsSPA:
+		ext := path.Ext(reqURL[len(reqURL)-1])
+		if ext == ".js" || ext == ".css" || ext == ".html" {
+			forwarding += p.RealPath + reqURL[len(reqURL)-1]
 			break
 		}
-		forwarding += p.RealPath + "index.html"
+		if ext == "" {
+			forwarding += p.RealPath + "index.html"
+			break
+		}
+		forwarding += p.AssetsRealPath + reqURL[len(reqURL)-1]
+	case !p.IsSPA:
+		ext := path.Ext(reqURL[len(reqURL)-1])
+		if ext == ".js" || ext == ".css" {
+			forwarding += p.RealPath + reqURL[len(reqURL)-1]
+			break
+		}
+		forwarding += p.AssetsRealPath + reqURL[len(reqURL)-1]
 	}
+	log.Println(forwarding)
 	url, err := url.Parse(forwarding)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
